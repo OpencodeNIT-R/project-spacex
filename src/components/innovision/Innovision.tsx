@@ -26,15 +26,15 @@ import EventPopup from './EventPopup';
 import AdminDashboard from './AdminDashboard';
 import CartPill from './CartPill';
 import Toast from './Toast';
-import Cursor from './Cursor';
 import WorldHint from './WorldHint';
+import DetailNotice from './DetailNotice';
 import Loader from './Loader';
 import { LiveV } from './SiteFooter';
 import type { V } from './types';
 import {
   getSupabase,
   getOrCreateUserProfile,
-  updateUserProfile,
+  updateUserPhone,
   fetchUserRegistration,
   createRegistration,
   signInWithGoogle,
@@ -136,7 +136,7 @@ interface State {
   /** Continue with Google: popup in progress, the last problem to show, and the account it returned. */
   gBusy: boolean; gErr: string; gUser: { name: string; email: string } | null;
   /** First-visit guide on the worlds slider is showing; coarse: touch-first device (hint wording). */
-  hint: boolean; coarse: boolean;
+  hint: boolean; notice: boolean; coarse: boolean;
   /** Admin and profile modal states */
   adminOpen: boolean;
   profileOpen: boolean;
@@ -172,7 +172,7 @@ const partList = (p: SlideParts) => [p.hero, p.rot, ...p.astro, p.outline, ...p.
 export default class Innovision extends Component<Props, State> {
   rootRef = createRef<HTMLDivElement>();
   state: State = { view: 'loading', index: 0, dIndex: 0, about: false, compact: false, narrow: false, menu: false, toastOn: false, toastMsg: '', curtainLabel: 'INNOVISION', curtainKicker: 'NOW ENTERING',
-    auth: false, authMode: 'register', step: 0, err: {} as any, busyLbl: '', user: null, files: {} as any, drag: '', copied: false, gIdx: 0, sel: {}, bag: [], bagOpen: false, added: null, schedDay: 0, schedFilter: 'all', saved: [], hudSolid: false, gBusy: false, gErr: '', gUser: null, hint: false, coarse: false, lowPower: false, lazy: {},
+    auth: false, authMode: 'register', step: 0, err: {} as any, busyLbl: '', user: null, files: {} as any, drag: '', copied: false, gIdx: 0, sel: {}, bag: [], bagOpen: false, added: null, schedDay: 0, schedFilter: 'all', saved: [], hudSolid: false, gBusy: false, gErr: '', gUser: null, hint: false, notice: false, coarse: false, lowPower: false, lazy: {},
     adminOpen: false, profileOpen: false, phoneModalOpen: false, eventPop: null, registration: null, authReady: false, dbGallery: [], dbEvents: [] };
   busy = false; pending = false; slideDir = 0;
   authBusy = false; authClosing = false;
@@ -186,7 +186,7 @@ export default class Innovision extends Component<Props, State> {
   // schedule: day swap in progress
   _dayBusy = false;
   // new-visitor guidance: the worlds guide has been seen/dismissed, and its delayed appearance
-  hintSeen = false; _hintT?: ReturnType<typeof setTimeout>;
+  hintSeen = false; _hintT?: ReturnType<typeof setTimeout>; _noticeT?: ReturnType<typeof setTimeout>;
   /** Home section to scroll to once the home view has been prepared. */
   pendingSec: string | null = null;
 
@@ -207,7 +207,7 @@ export default class Innovision extends Component<Props, State> {
   gEls: HTMLElement[] = []; dEls: HTMLElement[] = [];
   gZ = 0; gTarget = 0; gTy = 0; gDrawn = '';
   dust: { x: number; y: number; z: number }[] = [];
-  gBar?: HTMLElement | null; gGlow?: HTMLElement | null; gEnd?: HTMLElement | null; gStars?: HTMLElement | null; gHint?: HTMLElement | null;
+  gBar?: HTMLElement | null; gGlow?: HTMLElement | null; gEnd?: HTMLElement | null; gStars?: HTMLElement | null;
 
   // detail
   dTriggers: (ScrollTrigger | undefined)[] = [];
@@ -268,7 +268,7 @@ export default class Innovision extends Component<Props, State> {
     this.alive = false;
     // A remount (dev strict mode) reuses this instance: low-power mode and the view tickers are set up again.
     document.documentElement.removeAttribute('data-lowpower'); this.lowPower = false; this.viewTicks = [];
-    clearTimeout(this._toast); clearTimeout(this._added); clearTimeout(this._hintT);
+    clearTimeout(this._toast); clearTimeout(this._added); clearTimeout(this._hintT); clearTimeout(this._noticeT);
     this._dayBusy = false;
     this.cleanups.splice(0).forEach((fn) => fn());
     this.io?.disconnect(); this.io = undefined; this.off.clear(); this.amb.clear();
@@ -298,7 +298,6 @@ export default class Innovision extends Component<Props, State> {
       this.loops();
       this.syncLoops();
       this.parallax();
-      this.magnet();
       this.tapRipple();
       this.attract();
       this.homeScroll();
@@ -326,14 +325,14 @@ export default class Innovision extends Component<Props, State> {
       if (isAuthRequired) {
         setTimeout(() => {
           this.openAuth('login');
-          this.toast('🔒 Authentication required: Please log in or sign up before registering.');
+          this.toast('Please log in to register.');
         }, 1200);
       } else if (isOpenRegister) {
         setTimeout(() => {
           if (!this.state.user) {
             sessionStorage.setItem('inv_pending_action', 'register');
             this.openAuth('login');
-            this.toast('🔒 Authentication required: Please log in or sign up before registering.');
+            this.toast('Please log in to register.');
           } else if (this.state.registration || this.pass) {
             this.openAuth('pass');
           } else {
@@ -376,9 +375,6 @@ export default class Innovision extends Component<Props, State> {
       return el.dataset.rev ? g.fromTo(el, { xPercent: -50 }, { xPercent: 0, duration: dur, ease: 'none', repeat: -1 }) : g.to(el, { xPercent: -50, duration: dur, ease: 'none', repeat: -1 });
     }));
     this.$$('[data-float]').forEach((el) => add(el, () => g.to(el, { y: -18, rotation: 1.2, duration: 6, ease: 'sine.inOut', repeat: -1, yoyo: true })));
-    // force3D keeps the line on its own layer, so the opacity half of the loop doesn't repaint the page behind it.
-    this.$$('[data-hint-line]').forEach((el) => add(el, () => g.timeline({ repeat: -1 }).fromTo(el, { scaleY: 0, opacity: 1, transformOrigin: 'top' }, { scaleY: 1, duration: 1.1, ease: 'expo.out', force3D: true }).to(el, { opacity: 0, duration: .7 })));
-    this.$$('[data-c-spark]').forEach((el) => add(el, () => g.to(el, { rotation: 360, duration: 6, ease: 'none', repeat: -1 })));
   }
   /** Tracks which home-page loop elements are near the viewport; the page is many screens tall. */
   watchHome() {
@@ -713,8 +709,8 @@ export default class Innovision extends Component<Props, State> {
       const cap9 = setTimeout(() => { loaded = N; }, 9000);
       const cnt = this.$('[data-l-count]')!, prog = this.$('[data-l-progress]')!;
       // The three planets swing in from their start angles and lock onto one line as loading
-      // progresses; the dotted link follows them and each locked world lights up below.
-      const R = [24, 36, 50], T = [.34, .67, 1], link = this.$('[data-l-link]'), wl = this.$$('[data-l-world]');
+      // progresses and the dotted link follows them.
+      const R = [24, 36, 50], T = [.34, .67, 1], link = this.$('[data-l-link]');
       // quickSetter writes the same transform as gsap.set without allocating a tween every frame.
       const orbs = this.$$('[data-l-orb]').map((o) => ({ o, rot: gsap.quickSetter(o, 'rotation', 'deg'), i: +(o.dataset.i || 0), a0: +(o.dataset.a0 || 0), lock: o.querySelector('[data-l-lock]'), done: false })).sort((a, b) => a.i - b.i);
       let pts0 = '';
@@ -727,7 +723,6 @@ export default class Innovision extends Component<Props, State> {
           if (q >= 1 && !b.done) {
             b.done = true;
             gsap.fromTo(b.lock, { scale: .6, autoAlpha: 1 }, { scale: 2.6, autoAlpha: 0, duration: 1.1, ease: 'expo.out' });
-            if (wl[b.i]) gsap.to(wl[b.i], { opacity: 1, color: '#8a6a2a', duration: .4 });
           }
         });
         const s = pts.join(' ');
@@ -772,7 +767,7 @@ export default class Innovision extends Component<Props, State> {
     await this.showView('home');
     if (to.section) this.scrollHome(to.section);
     const disc = this.$('[data-loader-disc]')!, target = this.$('[data-hero-disc]')!;
-    g.set(target, { autoAlpha: 0 });
+    g.set([target, this.$('[data-hero-sweep]')], { autoAlpha: 0 });
     const he = this.homeEnter().pause(0);
     const a = disc.getBoundingClientRect(), b = target.getBoundingClientRect();
     g.timeline()
@@ -781,7 +776,7 @@ export default class Innovision extends Component<Props, State> {
       .to(disc, { x: (b.left + b.width / 2) - (a.left + a.width / 2), y: (b.top + b.height / 2) - (a.top + a.height / 2), scale: b.width / a.width, duration: 1.6, ease: 'expo.inOut' }, .35)
       .to(this.$('[data-loader-bg]'), { autoAlpha: 0, duration: 1, ease: 'power2.inOut' }, .95)
       .add(() => { he.play(); }, 1.25)
-      .add(() => { g.set(target, { autoAlpha: 1 }); this.hideLoader(); }, 1.96);
+      .add(() => { g.set([target, this.$('[data-hero-sweep]')], { autoAlpha: 1 }); this.hideLoader(); }, 1.96);
   }
   async firstPaint() {
     let to = this.parse();
@@ -799,7 +794,7 @@ export default class Innovision extends Component<Props, State> {
   /** Readies a view behind the curtain or loader; false when a lazy view's chunk couldn't be fetched (nothing changed). */
   async prepView(to: Route) {
     if (to.view in LAZY && !(await this.mount(to.view as LazyKey))) return false;
-    if (to.view === 'home') { gsap.set(this.$('[data-hero-disc]'), { autoAlpha: 1, scale: 1 }); this.$('[data-view="home"]')!.scrollTop = 0; }
+    if (to.view === 'home') { gsap.set(this.$$('[data-hero-disc],[data-hero-sweep]'), { autoAlpha: 1, scale: 1 }); this.$('[data-view="home"]')!.scrollTop = 0; }
     else if (to.view === 'merch') this.$('[data-view="merch"]')!.scrollTop = 0;
     else if (to.view === 'schedule') this.$('[data-view="schedule"]')!.scrollTop = 0;
     else if (to.view === 'gallery') { this.gZ = -2600; this.gTarget = -2600; }
@@ -831,7 +826,7 @@ export default class Innovision extends Component<Props, State> {
     this.dEls = this.$$('[data-g-dust]');
     this.gZ = 0; this.gTarget = 0; this.gDrawn = '';
     this.dust = this.dEls.map((_, k) => ({ x: (((k * 73) % 100) / 100 - .5) * 1.6, y: (((k * 41) % 100) / 100 - .5) * 1.4, z: (k * 997) % 6000 }));
-    this.gBar = this.$('[data-g-bar]'); this.gGlow = this.$('[data-g-glow]'); this.gEnd = this.$('[data-g-end]'); this.gStars = this.$('[data-g-stars]'); this.gHint = this.$('[data-g-hint]');
+    this.gBar = this.$('[data-g-bar]'); this.gGlow = this.$('[data-g-glow]'); this.gEnd = this.$('[data-g-end]'); this.gStars = this.$('[data-g-stars]');
   }
   galleryTick() {
     if (this.state.view !== 'gallery' || !this.gEls.length) return;
@@ -868,7 +863,6 @@ export default class Innovision extends Component<Props, State> {
     const end = p > .94;
     this.gEnd!.style.opacity = end ? '1' : '0';
     this.gEnd!.style.pointerEvents = end ? 'auto' : 'none';
-    this.gHint!.style.opacity = this.gTarget > 300 ? '0' : '1';
     const idx = Math.max(0, Math.min(gLen - 1, Math.round((this.gZ - 200) / GAP)));
     if (idx !== this.state.gIdx) this.setState({ gIdx: idx });
   }
@@ -930,25 +924,24 @@ export default class Innovision extends Component<Props, State> {
       .fromTo($$('[data-h-sub]'), { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 1.2, ease: 'expo.out' }, .75)
       .fromTo($$('[data-h-cta]'), { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 1.1, ease: 'expo.out', stagger: .08 }, .9)
       .fromTo($$('[data-h-spark]'), { autoAlpha: 0 }, { autoAlpha: 1, duration: 1.4, stagger: .05 }, .6)
-      .fromTo($('[data-h-scroll]'), { autoAlpha: 0 }, { autoAlpha: 1, duration: 1 }, 1.4)
       .to($$('[data-hud]'), { autoAlpha: 1, duration: 1 }, .8);
   }
   homeLeave() {
     const g = gsap, $ = this.$, $$ = this.$$;
     return g.timeline()
       .to($$('[data-h-ch]'), { yPercent: -60, autoAlpha: 0, duration: .8, ease: 'power3.in', stagger: .03 }, 0)
-      .to([...$$('[data-h-kicker]'), ...$$('[data-h-sub]'), ...$$('[data-h-cta]'), $('[data-h-scroll]')], { autoAlpha: 0, y: -20, duration: .5, ease: 'power2.in' }, 0)
-      .to($('[data-hero-disc]'), { scale: 1.3, duration: 1.8, ease: 'power3.in' }, 0)
+      .to([...$$('[data-h-kicker]'), ...$$('[data-h-sub]'), ...$$('[data-h-cta]')], { autoAlpha: 0, y: -20, duration: .5, ease: 'power2.in' }, 0)
+      .to($$('[data-hero-disc],[data-hero-sweep]'), { scale: 1.3, duration: 1.8, ease: 'power3.in' }, 0)
       .to($('[data-h-astro]'), { x: 220, y: -220, rotation: 30, autoAlpha: 0, duration: 1.6, ease: 'power3.in' }, 0)
       .to($('[data-h-planet]'), { yPercent: 40, duration: 1.6, ease: 'power3.in' }, 0)
       .to($$('[data-h-ring]'), { scale: 1.3, autoAlpha: 0, duration: 1.6, ease: 'power3.in', stagger: .05 }, 0);
   }
   homeScroll() {
     const sc = this.$('[data-view="home"]');
-    gsap.timeline({ scrollTrigger: { trigger: this.$('[data-hero-wrap]'), scroller: sc, start: 'top top', end: 'bottom top', scrub: true } })
+    // Ends the moment the briefing fully covers the pinned hero.
+    gsap.timeline({ scrollTrigger: { trigger: this.$('[data-hero-wrap]'), scroller: sc, start: 'top top', end: 'bottom bottom', scrub: true } })
       .fromTo(this.$('[data-h-par]'), { scale: 1, yPercent: 0 }, { scale: .93, yPercent: 6, ease: 'none' }, 0)
-      .fromTo(this.$('[data-h-dim]'), { opacity: 0 }, { opacity: .3, ease: 'none' }, 0)
-      .to(this.$('[data-h-scroll]'), { autoAlpha: 0, duration: .15, ease: 'none' }, 0);
+      .fromTo(this.$('[data-h-dim]'), { opacity: 0 }, { opacity: .3, ease: 'none' }, 0);
     const tun = this.$('[data-tunnel]');
     if (tun) {
       const fr = this.$$('[data-t-frame]'), N = fr.length, TGAP = 1000, cnt = this.$('[data-t-count]');
@@ -1011,6 +1004,7 @@ export default class Innovision extends Component<Props, State> {
     const sc = v === 'detail' ? this.$('[data-d-scroller]') : v === 'home' || v === 'merch' || v === 'schedule' ? this.$('[data-view="' + v + '"]') : null;
     const solid = !!sc && sc.scrollTop > 24;
     if (solid !== this.state.hudSolid) this.setState({ hudSolid: solid });
+    if (solid && v === 'detail') this.hideNotice();
   }
   clr(els: (HTMLElement | null)[]) { gsap.set(els.filter(Boolean), { clearProps: 'transform,opacity,visibility,filter,zIndex' }); }
   async setSlide(i: number) {
@@ -1067,7 +1061,7 @@ export default class Innovision extends Component<Props, State> {
     if (this.dtl) { if (this.dtl.scrollTrigger) this.dtl.scrollTrigger.kill(); this.dtl.kill(); }
     if (!keep) sc.scrollTop = 0;
     const q = (s: string) => [...root.querySelectorAll<HTMLElement>(s)];
-    g.set(q('[data-speed],[data-d-titleblock],[data-d-hint],[data-d-word],[data-d-intro],[data-d-spec],[data-d-fade],[data-d-card]'), { clearProps: 'transform,opacity,visibility,filter' });
+    g.set(q('[data-speed],[data-d-titleblock],[data-d-word],[data-d-intro],[data-d-spec],[data-d-fade],[data-d-card]'), { clearProps: 'transform,opacity,visibility,filter' });
     const H = () => innerHeight;
     // smoothWheel already eases the scroll itself, so the scene follows it directly: a trailing scrub
     // drifted out of step with the page, most visibly where the sticky scene hands over to the manifest.
@@ -1080,8 +1074,7 @@ export default class Innovision extends Component<Props, State> {
     });
     q('[data-thrust]').forEach((el) => tl.fromTo(el, { opacity: 0, scaleY: 0 }, { opacity: 1, scaleY: 1, duration: 0.15 }, 0));
     q('[data-lander]').forEach((el) => tl.to(el, { y: () => -H() * 0.25, duration: 0.35, ease: 'power1.out' }, 0));
-    tl.to(root.querySelector('[data-d-titleblock]'), { scale: 1.25, autoAlpha: 0, y: () => -H() * .08, duration: .3 }, 0)
-      .to(root.querySelector('[data-d-hint]'), { autoAlpha: 0, duration: .08 }, 0);
+    tl.to(root.querySelector('[data-d-titleblock]'), { scale: 1.25, autoAlpha: 0, y: () => -H() * .08, duration: .3 }, 0);
     // One tween per word (equivalent to stagger: .03): with GSAP 3.13+, a staggered fromTo inside a
     // scrubbed timeline that is invalidated on refresh reverts not-yet-started targets to visible.
     q('[data-d-word]').forEach((el, k) => tl.fromTo(el, { autoAlpha: 0, y: 40, filter: 'blur(10px)' }, { autoAlpha: 1, y: 0, filter: 'blur(0px)', duration: .12 }, .24 + k * .03));
@@ -1123,12 +1116,13 @@ export default class Innovision extends Component<Props, State> {
   }
   detailEnter() {
     const root = this.$('[data-view="detail"]')!;
+    this.hideNotice();
     return gsap.timeline()
       .fromTo(root.querySelectorAll('[data-d-ch]'), { yPercent: 70, autoAlpha: 0 }, { yPercent: 0, autoAlpha: 1, duration: 1.4, ease: 'expo.out', stagger: .05 }, .1)
       .fromTo(root.querySelector('[data-d-stats]'), { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 1.2, ease: 'expo.out' }, .5)
       .fromTo(root.querySelectorAll('[data-d-sub]'), { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 1.4, ease: 'expo.out' }, .7)
       .fromTo(root.querySelectorAll('[data-speed] > img, [data-speed] > div'), { scale: 1.08 }, { scale: 1, duration: 2.4, ease: 'expo.out' }, 0)
-      .fromTo(root.querySelector('[data-d-hint]'), { autoAlpha: 0 }, { autoAlpha: 1, duration: 1 }, 1);
+      .call(() => this.showNotice(), [], 1.2);
   }
   fitTitle() {
     const el = this.$('[data-d-title]');
@@ -1144,6 +1138,17 @@ export default class Innovision extends Component<Props, State> {
     if (this.hintSeen) return;
     clearTimeout(this._hintT);
     this._hintT = setTimeout(() => { if (this.alive && this.state.view === 'worlds' && !this.hintSeen) this.setState({ hint: true }); }, 2600);
+  }
+  /** Briefly shows the "scroll down for missions" notice after a world's entrance; scrolling the page hides it early (hudSync). */
+  showNotice() {
+    clearTimeout(this._noticeT);
+    if (this.state.view !== 'detail') return;
+    this.setState({ notice: true });
+    this._noticeT = setTimeout(() => { if (this.alive) this.setState({ notice: false }); }, 4500);
+  }
+  hideNotice() {
+    clearTimeout(this._noticeT);
+    if (this.state.notice) this.setState({ notice: false });
   }
   /** Touch has no hover, so a tap on a planet answers at once with a ripple from the finger before the curtain falls. */
   tapRipple() {
@@ -1390,42 +1395,7 @@ export default class Innovision extends Component<Props, State> {
     this.listen(window, 'mousemove', mm, { passive: true });
     this.cleanups.push(() => cancelAnimationFrame(raf));
   }
-  /** Custom cursor ring/dot plus magnetic pull on [data-magnet] links (home page and HUD). */
-  magnet() {
-    if (matchMedia('(pointer: coarse)').matches) return;
-    const g = gsap, ring = this.$('[data-cursor]')!, dot = this.$('[data-cursor-dot]')!;
-    const rx = g.quickTo(ring, 'x', { duration: .45, ease: 'power3' }), ry = g.quickTo(ring, 'y', { duration: .45, ease: 'power3' });
-    const dx = g.quickTo(dot, 'x', { duration: .1, ease: 'power3' }), dy = g.quickTo(dot, 'y', { duration: .1, ease: 'power3' });
-    const els = this.$$('[data-view="home"] [data-magnet], [data-hud] [data-magnet]');
-    let active: HTMLElement | null = null, shown = false;
-    const release = () => { if (active) { g.to(active, { x: 0, y: 0, duration: 1, ease: 'elastic.out(1,.4)' }); active = null; g.to(ring, { scale: 1, duration: .5, ease: 'expo.out' }); } };
-    const move = (ev: Event) => {
-      const e = ev as globalThis.MouseEvent;
-      const home = this.state.view === 'home', x = e.clientX, y = e.clientY;
-      if (home !== shown) { shown = home; g.to([ring, dot], { autoAlpha: home ? 1 : 0, duration: .4 }); }
-      dx(x); dy(y);
-      if (!home) { release(); rx(x); ry(y); return; }
-      let hit: { el: HTMLElement; cx: number; cy: number; ox: number; oy: number } | null = null;
-      for (const el of els) {
-        const r = el.getBoundingClientRect();
-        if (!r.width) continue;
-        const cx = r.left + r.width / 2 - (Number(g.getProperty(el, 'x')) || 0), cy = r.top + r.height / 2 - (Number(g.getProperty(el, 'y')) || 0);
-        const ox = x - cx, oy = y - cy;
-        if (Math.abs(ox) < r.width / 2 + 40 && Math.abs(oy) < r.height / 2 + 40) { hit = { el, cx, cy, ox, oy }; break; }
-      }
-      if (active && (!hit || hit.el !== active)) release();
-      if (hit) {
-        if (!active) g.to(ring, { scale: 1.9, duration: .5, ease: 'expo.out' });
-        active = hit.el;
-        g.to(hit.el, { x: hit.ox * .3, y: hit.oy * .4, duration: .6, ease: 'power3.out', overwrite: 'auto' });
-        rx(hit.cx + hit.ox * .5); ry(hit.cy + hit.oy * .5);
-      } else { rx(x); ry(y); }
-    };
-    const out = () => { release(); shown = false; g.to([ring, dot], { autoAlpha: 0, duration: .3 }); };
-    this.listen(window, 'mousemove', move, { passive: true });
-    this.listen(document.documentElement, 'mouseleave', out);
-  }
-  /** Elements marked [data-attract] on the home page drift toward the cursor when it is near. */
+  /** The hero INNOVISION letters ([data-attract]) drift toward the cursor when it is near; nothing else on the site follows the pointer. */
   attract() {
     if (matchMedia('(pointer: coarse)').matches || this.reduce) return;
     const els = this.$$('[data-view="home"] [data-attract]') as Attracted[];
@@ -1480,7 +1450,7 @@ export default class Innovision extends Component<Props, State> {
         sessionStorage.setItem('inv_pending_action', 'register');
       }
       this.openAuth('login');
-      this.toast('🔒 Authentication required: Please log in or sign up before registering.');
+      this.toast('Please log in to register.');
       return;
     }
     if (this.state.registration || this.pass) {
@@ -1714,7 +1684,7 @@ export default class Innovision extends Component<Props, State> {
         this.openAuth('pass');
         this.toast(`Welcome back, ${profile.full_name?.split(' ')[0] || 'Explorer'}! Here is your boarding pass.`);
       } else {
-        this.toast(`Authenticated as ${profile.email}. Let's complete your registration.`);
+        this.toast(`Signed in as ${profile.email}.`);
         setTimeout(() => this.openAuth('register'), 300);
       }
       return;
@@ -1751,7 +1721,7 @@ export default class Innovision extends Component<Props, State> {
 
   handleUpdatePhone = async (phone: string) => {
     if (!this.state.user) return;
-    const res = await updateUserProfile(this.state.user.id, { phone });
+    const res = await updateUserPhone(phone);
     if (!res.success) throw new Error(res.error || 'Failed to update phone');
     this.setState((st: any) => ({
       user: st.user ? { ...st.user, phone } : null,
@@ -1904,7 +1874,7 @@ export default class Innovision extends Component<Props, State> {
         sessionStorage.setItem('inv_pending_action', 'register');
       }
       mode = 'login';
-      this.toast('🔒 Authentication required: Please log in or sign up before registering.');
+      this.toast('Please log in to register.');
     }
 
     // If user is already registered, always show their pass - never show registration
@@ -2038,7 +2008,7 @@ export default class Innovision extends Component<Props, State> {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('inv_pending_action', 'register');
       }
-      this.toast('🔒 Authentication required: Please log in or sign up first to access registration.');
+      this.toast('Please log in to register.');
       return;
     }
 
@@ -2313,7 +2283,7 @@ export default class Innovision extends Component<Props, State> {
           };
 
           playClick();
-          this.toast(saveRes.alreadyRegistered ? 'You are already registered! Here is your pass.' : '🎉 Registration confirmed! Welcome to Innovision 2026.');
+          this.toast(saveRes.alreadyRegistered ? 'You are already registered. Here is your pass.' : 'Registration confirmed. Welcome to Innovision 2026.');
 
           this.setState(
             {
@@ -2460,7 +2430,7 @@ export default class Innovision extends Component<Props, State> {
       authTitle: reg ? 'Claim your seat' : am === 'login' ? 'Welcome back' : "You're on board",
       authSub: reg
         ? (isInternal ? 'NIT Rourkela student registration: Instant auto-confirmed entry (Free).' : 'Three short stops to register for Innovision 2026 at NIT Rourkela.')
-        : am === 'login' ? 'Sign in using your Google account or institute webmail.' : 'Your boarding pass is ready. See you at NIT Rourkela.',
+        : am === 'login' ? 'Sign in using your Google account.' : 'Your boarding pass is ready. See you at NIT Rourkela.',
       railD: show(showRail && !s.narrow && !isInternal), hprogD: showRail && s.narrow && !isInternal ? 'grid' : 'none',
       prog: railSteps.map(([label, hint, short], k) => {
         const done = k < st, cur = k === st && reg, back = done && reg;
@@ -2693,16 +2663,14 @@ export default class Innovision extends Component<Props, State> {
       navO: navOn ? 1 : 0, navY: navOn ? '0px' : '30px', navPE: (navOn ? 'auto' : 'none') as 'auto' | 'none',
       navBottom: s.narrow ? 'calc(clamp(16px,2.6vw,44px) + 40px)' : 'clamp(16px,2.6vw,44px)',
       hudSolid: s.hudSolid,
-      scrollNext: () => {
-        const sc = this.$('[data-view="home"]'), hw = this.$('[data-hero-wrap]');
-        if (sc && hw) sc.scrollTo({ top: hw.offsetTop + hw.offsetHeight, behavior: this.reduce ? 'auto' : 'smooth' });
-      },
       hintOn: s.hint && s.view === 'worlds' && !s.auth && !s.menu,
       // Entering is spelled out by the world's Enter button; the guide covers what isn't on screen: there are four worlds.
       // Name only the controls this screen shows: no side arrows on narrow screens, no keys on touch.
       hintMain: s.coarse ? 'Swipe left or right to visit all four worlds' : s.narrow ? 'Use the ← → keys or the switcher below to visit all four worlds' : 'Use the side arrows or ← → keys to visit all four worlds',
       hintSub: s.coarse ? 'Tap Enter, or the planet itself, to step inside one.' : 'Hover over a planet, then click Enter to step inside.',
       dismissHint: this.dismissHint,
+      noticeOn: s.notice && s.view === 'detail' && !s.auth && !s.menu && !s.eventPop,
+      noticeWorld: WORLDS[s.dIndex].name, noticeAccent: WORLDS[s.dIndex].accent,
       aboutVis: (s.about ? 'visible' : 'hidden') as 'visible' | 'hidden', aboutDelay: s.about ? '0s' : '.8s', aboutO: s.about ? 1 : 0, aboutX: s.about ? '0%' : '100%',
       aboutHidden: !s.about,
       openAbout: (e?: MouseEvent) => { if (e) e.preventDefault(); this.setState({ about: true, menu: false }); },
@@ -2779,6 +2747,7 @@ export default class Innovision extends Component<Props, State> {
         <Hud v={v} />
         <WorldNav v={v} />
         <WorldHint v={v} />
+        <DetailNotice v={v} />
         <Curtain v={v} />
         <AboutPanel v={v} />
         {s.lazy.menu && <MenuOverlay v={v} />}
@@ -2811,7 +2780,6 @@ export default class Innovision extends Component<Props, State> {
         {s.lazy.bag && <BagPanel v={v} />}
         <CartPill v={v} />
         <Toast v={v} />
-        <Cursor />
         <LoaderV v={v} deps={[]} />
         </LiveV>
       </div>

@@ -51,3 +51,6 @@ next-env.d.ts
 
 # tests (kept locally only; run with `npm test` / `npx playwright test`)
 /tests/
+
+# local tooling (check:assets, payment-proof migration; used by the local-only tests)
+/scripts/
