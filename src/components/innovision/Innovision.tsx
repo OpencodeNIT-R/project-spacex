@@ -728,8 +728,10 @@ export class Innovision extends Component<Props, State> {
     this._warmed = true;
     if (slowNet()) return;
     // The overlay and view a visitor is most likely to open next are fetched ahead too (their own hover/tap also does).
-    // The pages of their own too, so MERCH (and REGISTER while closed) open at once (a no-op on the dev server).
-    this.cleanups.push(this.idle(() => { this.prefetch('auth'); this.prefetch('detail'); OWN_PAGES.forEach((p) => this.props.router?.prefetch(p)); }));
+    // The pages of their own (OWN_PAGES: MERCH, REGISTER while closed) are NOT prefetched: each router.prefetch cost 3
+    // uncached RSC requests on every home page view, for a page few visitors open. A click on one still switches
+    // client-side (the document click listener in componentDidMount), fetching the route then.
+    this.cleanups.push(this.idle(() => { this.prefetch('auth'); this.prefetch('detail'); }));
     // The menu (where the top bar has a MENU button) and the register / log-in overlay are mounted, closed, ahead of
     // time: mounting one on its first tap blocked a phone for ~100 ms just as its reveal began. One per idle period.
     this.cleanups.push(this.idle(() => {
@@ -2947,8 +2949,10 @@ export class Innovision extends Component<Props, State> {
       authSub: reg
         ? 'Three short stops to register for Innovision 2026 at NIT Rourkela.'
         : am === 'login' ? 'Sign in or create your account with Google.' : P.status === 'CONFIRMED' ? 'Your payment is verified. Your INNO pass is always available here.' : P.status === 'REJECTED' ? (this.canRegisterAgain() ? 'See why below, then register again with the right details.' : 'Please contact the registration helpdesk for assistance.') : 'Your payment is under review by the registration team. Your pass appears here after approval.',
-      // The seat counter (GET /api/seats) beside the registration form.
-      showSeats: reg,
+      // The seat counter (GET /api/seats) beside the registration form. Only while the overlay is open: it is mounted,
+      // closed, at idle (warmDeferred), and a mounted counter polls every 30 s. `auth` turns true before the overlay
+      // animates in and false after it has animated out, so the counter is never cut off mid-animation.
+      showSeats: reg && s.auth,
       // REGISTER AGAIN on a rejected pass; the pass itself decides whether to show it (attempts left).
       registerAgain: REGISTRATIONS_OPEN ? this.registerAgain : undefined,
       idCardUploaded: this.idCardUploaded,
