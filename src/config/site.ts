@@ -45,9 +45,26 @@ export const SOCIAL_PROFILES = [
 export const SITE_DESCRIPTION =
   "Official website of INNOVISION 2026 by NIT Rourkela, Eastern India's largest techno-management fest. Explore the Flagship, Standout, Main, and DTS and Fun Events.";
 
-/** Official WhatsApp Community / Group link for registered attendees. */
-export const WHATSAPP_COMMUNITY_URL =
-  'https://chat.whatsapp.com/ISNec5MRzMD3RTUPaT9Wqx?s=cl&p=a&mlu=4&ilr=4';
+/** Official WhatsApp group for confirmed attendees (the "Before you visit" card on MY PASS). */
+export const WHATSAPP_COMMUNITY_URL = 'https://chat.whatsapp.com/ISNec5MRzMD3RTUPaT9Wqx';
+
+/**
+ * The No Objection Certificate confirmed participants download, print, fill, sign (with a parent) and bring as a hard
+ * copy to the venue (MY PASS, under the ticket). The file lives in public/forms, not public/assets: /assets is cached
+ * for a week (next.config.ts), so a form swapped under the same name there could stay stale.
+ */
+export const NOC_FORM = {
+  title: 'INNOVISION 2026 No Objection Certificate',
+  href: '/forms/innovision-2026-noc.pdf',
+  fileName: 'INNOVISION-2026-NOC.pdf',
+} as const;
+
+/** General guidelines for participants (entry, verification, accommodation, contacts, conduct), also under the ticket. */
+export const GUIDELINES_PDF = {
+  title: 'INNOVISION 2026 General Guidelines',
+  href: '/forms/innovision-2026-guidelines.pdf',
+  fileName: 'INNOVISION-2026-General-Guidelines.pdf',
+} as const;
 
 /**
  * Whether search engines may index this deployment. Only Vercel's production deployment is indexable: preview and

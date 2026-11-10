@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ParticipantPass } from '@/lib/pass-experience';
-import { WHATSAPP_COMMUNITY_URL } from '@/config/site';
+import { EVENT_DATE, GUIDELINES_PDF, NOC_FORM, WHATSAPP_COMMUNITY_URL } from '@/config/site';
 import { REGISTRATION_PREVIEW_ENABLED } from '@/config/launch';
 import PassTicket from './PassTicket';
 import { passRequest } from './pass-client';
@@ -175,31 +175,69 @@ export default function PassIssued({ pass, qr, preview = false }: PassIssuedProp
             </div>
           </div>
 
-          {/* WhatsApp Community Card */}
-          <div className={`${styles.whatsappCard} no-print`}>
+          {/* Before you visit: the attendees group and the declaration forms to bring */}
+          <div className={`${styles.whatsappCard} ${styles.visitCard} no-print`}>
             <div className={styles.whatsappHeader}>
               <span className={styles.whatsappBadge}>
                 <span className={styles.whatsappBadgeDot} />
-                OFFICIAL ATTENDEES GROUP
+                BEFORE YOU VISIT
               </span>
               <span className={styles.whatsappVenue}>NIT ROURKELA</span>
             </div>
-            <div>
-              <h4 className={styles.whatsappTitle}>Stay in the loop.</h4>
+            <h4 className={styles.whatsappTitle}>Three things before {EVENT_DATE.display.replace(/\s\d{4}$/, '')}.</h4>
+
+            <div className={styles.visitStep}>
+              <span className={styles.visitStepLabel}>01 · JOIN THE ATTENDEES GROUP</span>
               <p className={styles.whatsappDesc}>
-                Event updates, schedule changes, and help from the team — all in the official community.
+                Event updates, schedule changes and help from the team, all in the official WhatsApp group.
               </p>
             </div>
             <a
               href={WHATSAPP_COMMUNITY_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className={styles.whatsappBtn}
+              className={`${styles.whatsappBtn} ${styles.visitBtn}`}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2ZM12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.59 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19.01L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.81 13.47 3.81 11.91C3.81 7.37 7.5 3.67 12.05 3.67ZM8.94 7.22C8.78 7.22 8.52 7.28 8.29 7.53C8.07 7.78 7.44 8.37 7.44 9.58C7.44 10.79 8.32 11.96 8.44 12.12C8.57 12.28 10.15 14.72 12.59 15.77C13.17 16.02 13.62 16.17 13.98 16.28C14.56 16.47 15.09 16.44 15.51 16.38C15.98 16.31 16.95 15.79 17.15 15.22C17.36 14.65 17.36 14.17 17.3 14.07C17.24 13.97 17.07 13.91 16.82 13.79C16.57 13.66 15.34 13.06 15.11 12.98C14.88 12.89 14.72 12.85 14.55 13.1C14.39 13.35 13.92 13.91 13.78 14.07C13.64 14.24 13.5 14.26 13.25 14.13C13 14.01 11.96 13.67 10.73 12.57C9.77 11.72 9.12 10.66 8.99 10.45C8.87 10.24 8.98 10.13 9.1 10.01C9.21 9.9 9.35 9.72 9.48 9.58C9.6 9.43 9.64 9.33 9.72 9.16C9.8 9 9.76 8.85 9.7 8.73C9.64 8.6 9.17 7.45 8.97 6.98C8.78 6.52 8.59 6.58 8.44 6.57L8.03 6.57C7.86 6.57 7.61 6.64 7.44 6.82L8.94 7.22Z"/>
               </svg>
-              <span>Join the community</span>
+              <span>Join the WhatsApp group</span>
+            </a>
+
+            <div className={styles.visitStep}>
+              <span className={styles.visitStepLabel}>02 · BRING THE SIGNED NOC</span>
+              <p className={styles.whatsappDesc}>
+                Download the NOC, print it, fill it in and sign it.
+                <strong className={styles.visitStress}> Bring the hard copy to INNOVISION.</strong>
+              </p>
+            </div>
+            <a href={NOC_FORM.href} download={NOC_FORM.fileName} className={styles.formLink}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+                <path d="M14 3v5h5M12 11v6M9.5 14.5 12 17l2.5-2.5" />
+              </svg>
+              <span className={styles.formText}>
+                <span className={styles.formTitle}>{NOC_FORM.title}</span>
+                <span className={styles.formMeta}>PDF · DOWNLOAD</span>
+              </span>
+            </a>
+
+            <div className={styles.visitStep}>
+              <span className={styles.visitStepLabel}>03 · CHECK THE INNOVISION GUIDELINES</span>
+              <p className={styles.whatsappDesc}>
+                Read the general guidelines before you travel: campus entry, offline verification, your participant
+                ID card, accommodation, contacts and campus rules.
+              </p>
+            </div>
+            <a href={GUIDELINES_PDF.href} download={GUIDELINES_PDF.fileName} className={styles.formLink}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+                <path d="M14 3v5h5M12 11v6M9.5 14.5 12 17l2.5-2.5" />
+              </svg>
+              <span className={styles.formText}>
+                <span className={styles.formTitle}>{GUIDELINES_PDF.title}</span>
+                <span className={styles.formMeta}>PDF · DOWNLOAD</span>
+              </span>
             </a>
           </div>
         </>

@@ -77,3 +77,15 @@ desktop.ini
 *.log
 *.tmp
 *.bak
+
+# documents and images dropped in the repo root (organiser drafts, invoices, statements,
+# WhatsApp images): never commit. Files the site serves go under public/ (e.g. public/forms).
+/*.pdf
+/*.doc
+/*.docx
+/*.ppt
+/*.pptx
+/*.png
+/*.jpg
+/*.jpeg
+/*.zip
