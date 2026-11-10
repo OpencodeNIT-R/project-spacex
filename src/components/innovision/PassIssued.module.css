@@ -543,6 +543,33 @@
 }
 .whatsappBtn:hover { background: #2ee06f; transform: translateY(-1px); }
 
+/* Before you visit: the WhatsApp card grown into two steps (group + declaration forms) */
+.visitStep { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.visitStepLabel {
+  font: 700 10px monospace;
+  letter-spacing: .12em;
+  color: #c8b17a;
+}
+.visitStress { color: #ECE8DF; font-weight: 700; }
+.formLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 10px 14px;
+  border: 1px solid rgba(236,232,223,0.18);
+  border-radius: 4px;
+  background: rgba(236,232,223,0.03);
+  color: #ECE8DF;
+  text-decoration: none;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+.formLink svg { flex: none; color: #c8b17a; }
+.formLink:hover { border-color: #c8b17a; background: rgba(200,177,122,0.08); }
+.formText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.formTitle { font-size: 14px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.formMeta { font: 700 9.5px monospace; letter-spacing: .12em; color: rgba(236,232,223,0.5); }
+
 /* Skip button during reveal */
 .skipBtn {
   position: absolute;
@@ -651,6 +678,9 @@
   .whatsappHeader { grid-column:1/-1; }
   .whatsappBtn { align-self:center; white-space:nowrap; background:#c8b17a; border:1px solid #e4d3a4; color:#141312; box-shadow:none; font-size:13px; letter-spacing:.02em; }
   .whatsappBtn:hover { background:#e4d3a4; transform:none; }
+  .whatsappCard.visitCard { display:flex; flex-direction:column; gap:10px; }
+  .visitBtn { align-self:flex-start; }
+  .formLink { align-self:flex-start; min-width:min(100%, 360px); }
 }
 @media(max-width:680px) {
   .issueHeader { max-width:440px; margin-bottom:20px; text-align:left; }
