@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { isApprovedPass, passStatusMessage, type ParticipantPass } from '@/lib/pass-experience';
+import { isApprovedPass, passAccommodationLabel, passStatusMessage, type ParticipantPass } from '@/lib/pass-experience';
 import { passRequest } from './pass-client';
 import PassIssued from './PassIssued';
 import IdCardUpload from './IdCardUpload';
@@ -204,7 +204,7 @@ function PassState({
         ) : null}
 
         {isPending ? (
-          <p className={styles.statusDesc}>Accommodation: {pass.accommodation === false ? 'not included' : 'included'}</p>
+          <p className={styles.statusDesc}>Accommodation: {passAccommodationLabel(pass).toLowerCase()}</p>
         ) : null}
 
         {reason ? (

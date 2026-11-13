@@ -1,5 +1,5 @@
 import { EVENT_DATE, SITE_NAME } from '@/config/site';
-import type { ParticipantPass } from '@/lib/pass-experience';
+import { passAccommodationLabel, type ParticipantPass } from '@/lib/pass-experience';
 
 /** Draw with the site's installed fonts; raster text preserves names in any script. */
 async function renderPass(pass: ParticipantPass, qr: string | null) {
@@ -46,7 +46,7 @@ async function renderPass(pass: ParticipantPass, qr: string | null) {
   y += 24; text('VENUE', '16px monospace', '#5c574f'); y += 34;
   text('NIT Rourkela', `24px ${sans}`); y += 46;
   text('ACCOMMODATION', '16px monospace', '#5c574f'); y += 34;
-  text(pass.accommodation === false ? 'Not included' : 'Included', `24px ${sans}`); y += 40;
+  text(passAccommodationLabel(pass), `24px ${sans}`); y += 40;
   ctx.strokeStyle = '#b5a78d'; ctx.setLineDash([4, 7]); ctx.beginPath(); ctx.moveTo(25, y); ctx.lineTo(675, y); ctx.stroke(); ctx.setLineDash([]);
   y += 42; text('REGISTRATION ID', '16px monospace', '#5c574f'); y += 38;
   text(pass.registrationId ?? '', 'bold 30px monospace'); y += 40;

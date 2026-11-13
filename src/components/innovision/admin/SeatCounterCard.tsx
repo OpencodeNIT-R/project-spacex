@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { httpErrorMessage } from '@/lib/api-errors';
-import { formatSeats, MAX_FEE, MAX_SEATS, nextPhaseError, seatCountError } from '@/lib/seats';
+import { formatSeats, isFee, MAX_FEE, MAX_SEATS, nextPhaseError, seatCountError } from '@/lib/seats';
 
 /*
  * SEAT COUNTER card on the admin Registrations tab (GET/PATCH /api/admin/seats). Total seats and seats left are what
@@ -59,6 +59,8 @@ export default function SeatCounterCard({ getAuthToken, canEdit, canAllowPayment
   const [phaseForm, setPhaseForm] = useState({ open: false, confirming: false, fee: '', total: '', left: '', error: '' });
   const [allowForm, setAllowForm] = useState({ open: false, email: '', amount: '', note: '', error: '', done: '' });
   const [maleSwitch, setMaleSwitch] = useState({ confirming: false, error: '' });
+  // The fee is kept after a grant: the desk usually charges everyone the same.
+  const [onSpotForm, setOnSpotForm] = useState({ open: false, confirming: false, email: '', fee: '', error: '', done: '' });
   // AdminDashboard recreates getAuthToken on every render; read it through a ref so loading isn't restarted each time.
   const tokenRef = useRef(getAuthToken);
   useEffect(() => {
@@ -157,6 +159,28 @@ export default function SeatCounterCard({ getAuthToken, canEdit, canAllowPayment
       setAllowForm({ open: true, email: '', amount: '', note: '', error: '', done: `${email} can now sign in and submit their proof, for 7 days.` });
     } catch (err: unknown) {
       setAllowForm((f) => ({ ...f, done: '', error: err instanceof Error ? err.message : 'Failed to allow the payment' }));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Two steps, like a new phase: the student is shown this fee as soon as it is saved.
+  const submitOnSpot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = onSpotForm.email.trim();
+    const fee = onSpotForm.fee.trim() === '' ? NaN : Number(onSpotForm.fee);
+    if (!email) { setOnSpotForm((f) => ({ ...f, done: '', confirming: false, error: "Enter the student's sign-in email." })); return; }
+    if (!isFee(fee)) { setOnSpotForm((f) => ({ ...f, done: '', confirming: false, error: `The fee must be a whole number of rupees from 1 to ${MAX_FEE}.` })); return; }
+    if (!onSpotForm.confirming) { setOnSpotForm((f) => ({ ...f, done: '', error: '', confirming: true })); return; }
+    try {
+      setSaving(true);
+      await post('/api/admin/registrations/on-spot', { email, amount: fee });
+      setOnSpotForm({
+        open: true, confirming: false, email: '', fee: onSpotForm.fee, error: '',
+        done: `${email} can now register on-spot at ₹${formatSeats(fee)}. Ask them to open REGISTER on their phone.`,
+      });
+    } catch (err: unknown) {
+      setOnSpotForm((f) => ({ ...f, done: '', confirming: false, error: err instanceof Error ? err.message : 'Failed to allow on-spot registration' }));
     } finally {
       setSaving(false);
     }
@@ -342,6 +366,39 @@ export default function SeatCounterCard({ getAuthToken, canEdit, canAllowPayment
             <button type="button" disabled={saving} onClick={() => setAllowForm({ open: false, email: '', amount: '', note: '', error: '', done: '' })} style={btn}>CLOSE</button>
             {allowForm.done ? <span role="status" style={{ flexBasis: '100%', fontSize: '13px', color: 'oklch(0.75 0.16 145)' }}>{allowForm.done}</span> : null}
             {allowForm.error ? <span role="alert" style={{ flexBasis: '100%', fontSize: '13px', color: 'oklch(0.74 0.15 35)' }}>{allowForm.error}</span> : null}
+          </form>
+        )}
+      </section>
+    ) : null}
+
+    {canAllowPayments ? (
+      <section aria-label="Allow on-spot registration" style={{ padding: '16px 22px', border: '1px solid rgba(236,232,223,0.12)' }}>
+        {!onSpotForm.open ? (
+          <button type="button" onClick={() => setOnSpotForm((f) => ({ ...f, open: true }))} style={btn}>ALLOW ON-SPOT</button>
+        ) : (
+          <form onSubmit={submitOnSpot} noValidate style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '12px' }}>
+            <span style={{ flexBasis: '100%', fontSize: '12px', lineHeight: 1.5, color: 'rgba(236,232,223,0.6)' }}>
+              Only for a student standing at the desk. They sign in on their phone first, then you enter their email. They fill in the usual form and pay this fee. On-spot includes no accommodation and no registration kit, so tell them before they pay. Approve only once the UTR and amount are on the bank statement.
+            </span>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={label}>STUDENT&apos;S SIGN-IN EMAIL</span>
+              <input type="email" value={onSpotForm.email} onChange={(e) => setOnSpotForm((f) => ({ ...f, email: e.target.value, confirming: false }))} style={textInput} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={label}>ON-SPOT FEE (₹)</span>
+              <input type="number" inputMode="numeric" min={1} max={MAX_FEE} value={onSpotForm.fee} onChange={(e) => setOnSpotForm((f) => ({ ...f, fee: e.target.value, confirming: false }))} style={input} />
+            </label>
+            <button type="submit" disabled={saving} style={{ ...btn, background: GOLD, color: '#141312', border: 0, cursor: saving ? 'wait' : 'pointer' }}>
+              {saving ? 'SAVING…' : onSpotForm.confirming ? `CONFIRM: ₹${formatSeats(Number(onSpotForm.fee))}, NO ACCOMMODATION, NO KIT` : 'REVIEW'}
+            </button>
+            <button type="button" disabled={saving} onClick={() => setOnSpotForm({ open: false, confirming: false, email: '', fee: '', error: '', done: '' })} style={btn}>CLOSE</button>
+            {onSpotForm.confirming ? (
+              <span role="status" style={{ flexBasis: '100%', fontSize: '13px', color: GOLD }}>
+                Allow {onSpotForm.email.trim()} to register on-spot at ₹{formatSeats(Number(onSpotForm.fee))}?
+              </span>
+            ) : null}
+            {onSpotForm.done ? <span role="status" style={{ flexBasis: '100%', fontSize: '13px', color: 'oklch(0.75 0.16 145)' }}>{onSpotForm.done}</span> : null}
+            {onSpotForm.error ? <span role="alert" style={{ flexBasis: '100%', fontSize: '13px', color: 'oklch(0.74 0.15 35)' }}>{onSpotForm.error}</span> : null}
           </form>
         )}
       </section>

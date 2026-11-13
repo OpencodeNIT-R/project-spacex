@@ -94,6 +94,24 @@ export function seatCountError(total: unknown, left: unknown): string | null {
 
 export const isFee = (n: unknown): n is number => Number.isInteger(n) && (n as number) >= 1 && (n as number) <= MAX_FEE;
 
+/**
+ * On-spot registration: a walk-in at the college desk. Staff enter the student's email and fee (POST
+ * /api/admin/registrations/on-spot), which issues a payment pass with this phase; the registration it produces keeps it.
+ * registration_counter.phase is always >= 1, so the online seat counter never moves for these. On-spot registrations
+ * get no accommodation and no registration kit.
+ */
+export const ON_SPOT_PHASE = 0;
+
+export const ON_SPOT_NOTICE = 'On-spot registration: no accommodation and no registration kit.';
+
+export const isOnSpotPhase = (phase: unknown): boolean => phase === ON_SPOT_PHASE;
+
+/** A registration's phase for staff: ON-SPOT, or the phase number. */
+export function phaseLabel(phase: number | null | undefined): string {
+  if (phase === null || phase === undefined) return '';
+  return isOnSpotPhase(phase) ? 'ON-SPOT' : String(phase);
+}
+
 /** Why an admin's next phase can't be started, or null if it can. */
 export function nextPhaseError(fee: unknown, total: unknown, left: unknown): string | null {
   if (!isFee(fee)) return `The fee must be a whole number of rupees from 1 to ${MAX_FEE}.`;
@@ -132,12 +150,14 @@ export interface PaymentOffer {
   currentFee: number | null;
   /** Whether this registration includes accommodation: the form shows this before the payment details. */
   accommodation: boolean;
+  /** An on-spot registration allowed by staff at the desk: no accommodation and no registration kit. */
+  onSpot: boolean;
 }
 
 /** The offer from a POST /api/register/start-payment response, or null if it isn't a valid one. */
 export function parsePaymentOffer(value: unknown): PaymentOffer | null {
   if (!value || typeof value !== 'object') return null;
-  const { state, amount, currentFee, accommodation } = value as Record<string, unknown>;
+  const { state, amount, currentFee, accommodation, onSpot } = value as Record<string, unknown>;
   if ((state !== 'pay' && state !== 'already_paid') || !isFee(amount) || typeof accommodation !== 'boolean') return null;
-  return { state, amount, currentFee: isFee(currentFee) ? currentFee : null, accommodation };
+  return { state, amount, currentFee: isFee(currentFee) ? currentFee : null, accommodation, onSpot: onSpot === true };
 }

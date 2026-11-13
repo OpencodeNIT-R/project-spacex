@@ -5,6 +5,7 @@ import { createRateLimiter } from '@/lib/security';
 import { decryptEntryToken, encryptEntryToken, entryPassKey, mintEntryToken } from '@/lib/entry-pass';
 import type { ParticipantPass } from '@/lib/pass-experience';
 import { attemptsLeft } from '@/lib/rejections';
+import { ON_SPOT_PHASE } from '@/lib/seats';
 
 export const runtime = 'nodejs';
 
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
       name: mine.name ?? null,
       college: details.data?.college ?? null,
       accommodation: details.data?.accommodation !== false,
+      onSpot: details.data?.phase === ON_SPOT_PHASE,
       checkedIn: !!mine.checked_in,
       token: null as string | null,
     };

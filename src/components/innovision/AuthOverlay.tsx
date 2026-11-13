@@ -253,6 +253,12 @@ export default function AuthOverlay({ v }: { v: V }) {
                     <div style={{ display: v.d.s2, flexDirection: "column", gap: "22px" }}>
                       <h3 data-s-in="" style={{ margin: "0 0 4px", fontFamily: "var(--font-display)", fontWeight: "400", fontSize: "clamp(24px,2.2vw,32px)", lineHeight: "1.1" }}>Pay the fee</h3>
                       {/* The server's answer, not the box: seen before any way to pay, since a payment can't be refunded. */}
+                      {offer?.onSpot ? (
+                        <p data-s-in="" role="status" style={{ margin: "0", padding: "12px 14px", border: "1px solid oklch(0.78 0.075 85)", background: "rgba(220,183,106,.08)", fontSize: "13px", lineHeight: "1.5", color: "rgba(236,232,223,.9)" }}>
+                          <span style={{ display: "block", fontSize: "12px", fontWeight: "700", letterSpacing: ".12em", color: "oklch(0.78 0.075 85)" }}>ON-SPOT REGISTRATION · ₹{offer.amount}</span>
+                          No accommodation and no registration kit are included.
+                        </p>
+                      ) : null}
                       {offer ? (
                         <p data-s-in="" role="status" style={{ margin: "0", padding: "12px 14px", border: "1px solid rgba(236,232,223,.18)", background: "rgba(236,232,223,.04)", fontSize: "12px", fontWeight: "700", letterSpacing: ".12em", lineHeight: "1.45", color: "rgba(236,232,223,.86)" }}>
                           ACCOMMODATION: <span style={{ color: offer.accommodation ? "oklch(0.78 0.075 85)" : "oklch(0.76 0.14 35)" }}>{offer.accommodation ? "INCLUDED" : "NOT INCLUDED"}</span>

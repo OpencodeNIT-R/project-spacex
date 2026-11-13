@@ -3,7 +3,7 @@ import { getAuthenticatedUser } from '@/lib/auth-server';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { registrationsClosedResponse, registrationsOpen } from '@/lib/registration-gate';
 import { ATTEMPTS_USED_UP_ERROR, attemptsLeft } from '@/lib/rejections';
-import { FORM_OUT_OF_DATE_MESSAGE, MALE_ACCOMMODATION_CLOSED_MESSAGE, REGISTRATIONS_FULL_MESSAGE } from '@/lib/seats';
+import { FORM_OUT_OF_DATE_MESSAGE, isOnSpotPhase, MALE_ACCOMMODATION_CLOSED_MESSAGE, REGISTRATIONS_FULL_MESSAGE } from '@/lib/seats';
 import { createRateLimiter, readJsonObject, REGISTRATION_GENDERS } from '@/lib/security';
 
 export const runtime = 'nodejs';
@@ -70,11 +70,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: ATTEMPTS_USED_UP_ERROR }, { status: 403 });
     }
 
+    // An on-spot pass (staff at the desk, POST /api/admin/registrations/on-spot) never includes accommodation, whatever
+    // the box says, and it isn't swapped for the online fee.
+    const { data: latestPass, error: passError } = await client
+      .from('payment_passes')
+      .select('phase')
+      .eq('user_id', user.id)
+      .is('used_at', null)
+      .gt('submit_by', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (passError) {
+      console.error('/api/register/start-payment pass lookup failed:', passError);
+      return NextResponse.json({ error: 'Could not start the payment. Please try again.' }, { status: 500 });
+    }
+    const onSpot = isOnSpotPhase(latestPass?.phase);
+
     const { data, error } = await client.rpc('start_payment_with_accommodation', {
       p_user_id: user.id,
-      p_fresh: body.value.fresh === true,
+      p_fresh: onSpot ? false : body.value.fresh === true,
       p_gender: gender,
-      p_no_accommodation: noAccommodation,
+      p_no_accommodation: onSpot ? true : noAccommodation,
     });
     if (error || !data) {
       console.error('/api/register/start-payment pass failed:', error);
@@ -94,8 +111,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       state: data.state,
       amount: data.amount,
-      currentFee: data.current_fee ?? null,
-      accommodation: data.accommodation,
+      // An on-spot student is offered only their on-spot fee.
+      currentFee: onSpot ? null : data.current_fee ?? null,
+      accommodation: onSpot ? false : data.accommodation,
+      onSpot: isOnSpotPhase(data.phase),
     });
   } catch (err: unknown) {
     console.error('API /api/register/start-payment error:', err);

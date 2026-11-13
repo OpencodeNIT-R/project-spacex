@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import EventTicket from '@/components/ui/event-ticket';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import type { ParticipantPass } from '@/lib/pass-experience';
+import { passAccommodationLabel, type ParticipantPass } from '@/lib/pass-experience';
 import { EVENT_DATE, VENUE_CITY } from '@/config/site';
 import PassKeepsake from './PassKeepsake';
 import styles from './ApprovedPassTicket.module.css';
@@ -86,7 +86,7 @@ export default function ApprovedPassTicket({ pass, animate = false }: { pass: Pa
         <button type="button" onClick={savePdf} disabled={saving} aria-busy={saving} className={styles.print}>{saving ? 'Preparing PDF…' : 'Save PDF'}</button>
         {pass.token && <button ref={qrButton} type="button" onClick={() => setQrOpen(true)}>View entry QR</button>}
       </div>
-      <p className={styles.note}>Accommodation: {pass.accommodation === false ? 'not included' : 'included'}</p>
+      <p className={styles.note}>Accommodation: {passAccommodationLabel(pass).toLowerCase()}</p>
       <p className={styles.note}>{pass.qrUnavailable || 'Keep your pass handy. Your registration ID is always available here.'}</p>
       {saveError && <p className={styles.note} role="alert">{saveError}</p>}
 
