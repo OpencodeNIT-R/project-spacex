@@ -15,7 +15,7 @@ import {
   PHONE_IN_USE_ERROR_MESSAGE,
 } from '@/lib/validation';
 import { ATTEMPTS_USED_UP_ERROR, attemptsLeft, isAttemptsUsedUpError } from '@/lib/rejections';
-import { accommodationForSubmit, FORM_OUT_OF_DATE_MESSAGE, isAccommodationRefusal, REGISTRATIONS_FULL_MESSAGE } from '@/lib/seats';
+import { accommodationForSubmit, FORM_OUT_OF_DATE_MESSAGE, isAccommodationRefusal, isOnSpotPhase, REGISTRATIONS_FULL_MESSAGE } from '@/lib/seats';
 import {
   classifyStudentType,
   createRateLimiter,
@@ -248,7 +248,9 @@ export async function POST(req: NextRequest) {
 
     // Saved when the student started paying (start-payment), never taken from the body alone. Null: this form never told
     // them whether accommodation is included.
-    const accommodation = accommodationForSubmit(input.gender, input.no_accommodation, payment);
+    // On-spot (staff at the desk, phase 0) never includes accommodation, whatever the form sent.
+    const onSpot = isOnSpotPhase(payment.phase);
+    const accommodation = onSpot ? false : accommodationForSubmit(input.gender, input.no_accommodation, payment);
     if (accommodation === null) {
       return NextResponse.json({ code: 'form_out_of_date', error: FORM_OUT_OF_DATE_MESSAGE, field: 'no_accommodation' }, { status: 409 });
     }

@@ -10,6 +10,8 @@ export interface ParticipantPass {
   qrUnavailable?: string;
   /** Whether this registration includes accommodation. */
   accommodation?: boolean;
+  /** An on-spot registration (allowed at the desk): no accommodation and no registration kit. */
+  onSpot?: boolean;
   /** Rejected registrations only: the reason staff gave (src/lib/rejections.ts), if any. */
   rejectionReason?: string | null;
   /** Rejected registrations only: how many more times the student may register. */
@@ -21,6 +23,12 @@ export interface ParticipantPass {
   idCard?: 'uploaded' | 'pending';
   /** With idCard 'pending': why staff asked for a new ID card (src/lib/id-cards.ts), if they did. */
   idCardReuploadReason?: string | null;
+}
+
+/** What the pass says about accommodation, e.g. "Not included · On-spot, no registration kit". */
+export function passAccommodationLabel(pass: Pick<ParticipantPass, 'accommodation' | 'onSpot'>): string {
+  if (pass.onSpot) return 'Not included · On-spot, no registration kit';
+  return pass.accommodation === false ? 'Not included' : 'Included';
 }
 
 export function isApprovedPass(pass: ParticipantPass): boolean {

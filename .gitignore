@@ -57,11 +57,19 @@ next-env.d.ts
 # Isolated pass component test bundle
 .pass-test/
 
-# spreadsheets in the repo root (bank statements, registration exports with
-# students' personal data, ad-hoc sheets): never commit
-/*.xlsx
-/*.xls
-/*.csv
+# spreadsheets anywhere in the repo (bank statements, registration exports with
+# students' personal data, UTR comparisons, ad-hoc sheets): never commit
+*.xlsx
+*.xls
+*.xlsm
+*.xlsb
+*.csv
+*.tsv
+*.ods
+*.numbers
+
+# generated import/processing output (event sheets, dry-run reports, SQL plans)
+/output/
 
 # Office lock files
 ~$*

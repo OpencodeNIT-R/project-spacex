@@ -13,6 +13,7 @@ import ReferralLeaderboard from './admin/ReferralLeaderboard';
 import AmbassadorsManager from './admin/AmbassadorsManager';
 import SeatCounterCard from './admin/SeatCounterCard';
 import { httpErrorMessage } from '@/lib/api-errors';
+import { isOnSpotPhase, phaseLabel } from '@/lib/seats';
 import { MAX_REGISTRATION_ATTEMPTS, ordinal, REJECTION_REASONS, rejectionLabel, type RejectionReason } from '@/lib/rejections';
 import { ID_CARD_REUPLOAD_REASONS, idCardReuploadLabel, type IdCardReuploadReason } from '@/lib/id-cards';
 
@@ -78,7 +79,7 @@ export default function AdminDashboard({
   // Client-side over the loaded list: registrations with or without their college ID card.
   const [idCardFilter, setIdCardFilter] = useState<'all' | 'missing' | 'uploaded'>('all');
   // Client-side over the loaded list too: registrations with or without accommodation.
-  const [accommodationFilter, setAccommodationFilter] = useState<'all' | 'with' | 'without'>('all');
+  const [accommodationFilter, setAccommodationFilter] = useState<'all' | 'with' | 'without' | 'onspot'>('all');
   // Bumped whenever the seat count may have moved (list reloaded, registration reviewed): the SEAT COUNTER card reloads.
   const [seatsKey, setSeatsKey] = useState(0);
 
@@ -453,7 +454,10 @@ export default function AdminDashboard({
   const visibleRegistrations = registrations.filter(
     (r) =>
       (idCardFilter === 'all' || (r.status !== 'rejected' && (idCardFilter === 'missing') === !r.id_card_path)) &&
-      (accommodationFilter === 'all' || (accommodationFilter === 'with') === (r.accommodation !== false))
+      (accommodationFilter === 'all' ||
+        (accommodationFilter === 'onspot'
+          ? isOnSpotPhase(r.phase)
+          : (accommodationFilter === 'with') === (r.accommodation !== false)))
   );
 
   // Export Registrations CSV
@@ -506,7 +510,7 @@ export default function AdminDashboard({
       rejectionLabel(r.rejection_reason),
       r.attempt ?? 1,
       r.amount,
-      r.phase ?? '',
+      phaseLabel(r.phase),
       r.allowed_by ? 'Yes' : '',
       r.utr,
       r.payment_proof_path,
@@ -1441,7 +1445,7 @@ export default function AdminDashboard({
                   aria-label="Accommodation"
                   value={accommodationFilter}
                   onChange={(e) => {
-                    setAccommodationFilter(e.target.value as 'all' | 'with' | 'without');
+                    setAccommodationFilter(e.target.value as 'all' | 'with' | 'without' | 'onspot');
                     setRegPage(1);
                   }}
                   style={{
@@ -1457,6 +1461,7 @@ export default function AdminDashboard({
                   <option value="all">Any Accommodation</option>
                   <option value="with">With Accommodation</option>
                   <option value="without">No Accommodation</option>
+                  <option value="onspot">On-spot Only</option>
                 </select>
 
                 <button
@@ -1629,6 +1634,11 @@ export default function AdminDashboard({
                             <div style={{ fontSize: '12px', color: reg.accommodation === false ? 'oklch(0.76 0.14 35)' : 'rgba(236,232,223,0.5)' }}>
                               {reg.accommodation === false ? 'No accommodation' : 'Accommodation'}
                             </div>
+                            {isOnSpotPhase(reg.phase) && (
+                              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '.12em', color: 'oklch(0.8 0.12 85)' }}>
+                                ON-SPOT · NO KIT
+                              </div>
+                            )}
                           </td>
 
                           {/* College & Enrollment */}

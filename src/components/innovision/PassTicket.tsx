@@ -1,6 +1,6 @@
 'use client';
 
-import { isApprovedPass, type ParticipantPass } from '@/lib/pass-experience';
+import { isApprovedPass, passAccommodationLabel, type ParticipantPass } from '@/lib/pass-experience';
 import ApprovedPassTicket from './ApprovedPassTicket';
 import styles from './PassIssued.module.css';
 import { EVENT_DATE } from '@/config/site';
@@ -51,7 +51,7 @@ export default function PassTicket({ pass, animate = false }: {
           </div>
           <div className={styles.metaCol}>
             <span className={styles.label}>ACCOMMODATION</span>
-            <span className={styles.value}>{pass.accommodation === false ? 'Not included' : 'Included'}</span>
+            <span className={styles.value}>{passAccommodationLabel(pass)}</span>
           </div>
         </div>
       </div>

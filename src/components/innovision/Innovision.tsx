@@ -2676,7 +2676,7 @@ export class Innovision extends Component<Props, State> {
       // offline, server error) means no payment details.
       const preview = REGISTRATION_PREVIEW_ENABLED && user.id === 'dev-preview-user';
       const started = preview
-        ? Promise.resolve({ offer: { state: 'pay' as const, amount: PREVIEW_REGISTRATION_FEE, currentFee: PREVIEW_REGISTRATION_FEE, accommodation: !no_accommodation } })
+        ? Promise.resolve({ offer: { state: 'pay' as const, amount: PREVIEW_REGISTRATION_FEE, currentFee: PREVIEW_REGISTRATION_FEE, accommodation: !no_accommodation, onSpot: false } })
         : startPayment(gender, no_accommodation);
       this.setState({ busyLbl: referred_by_code ? 'CHECKING CODE' : 'CHECKING' });
       Promise.all([started, referred_by_code ? checkReferralCode(referred_by_code) : null]).then(([pay, res]) => {
